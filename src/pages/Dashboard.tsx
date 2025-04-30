@@ -1,4 +1,3 @@
-
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -35,6 +34,7 @@ const Dashboard = () => {
     }
   };
 
+  // Make sure forms are sorted by most recently updated
   const sortedForms = [...forms].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
   const recentForms = sortedForms.slice(0, 5);
   

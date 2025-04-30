@@ -79,7 +79,8 @@ export const FormProvider = ({ children }: { children: ReactNode }) => {
       submissionCount: 0,
     };
     
-    setForms(prev => [...prev, newForm]);
+    // Place the new form at the beginning of the array to ensure it shows up in recent forms
+    setForms(prev => [newForm, ...prev]);
     addAuditLog(newForm.id, "form", "create", undefined, "draft");
     toast.success("Form created successfully");
   }, [currentUser, addAuditLog]);
