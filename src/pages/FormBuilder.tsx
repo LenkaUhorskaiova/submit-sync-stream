@@ -70,7 +70,7 @@ const FormBuilderPage = () => {
       createForm({
         title: formData.title,
         description: formData.description || "",
-        fields: formData.fields || [],
+        fields: formData.fields || [], // Ensure fields is always defined
         status: "draft",
       });
       toast.success("New form created successfully");

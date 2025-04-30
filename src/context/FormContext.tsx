@@ -8,7 +8,12 @@ interface FormContextType {
   forms: Form[];
   submissions: Submission[];
   auditLogs: AuditLog[];
-  createForm: (form: Omit<Form, "id" | "createdBy" | "createdAt" | "updatedAt" | "slug" | "submissionCount">) => void;
+  createForm: (form: { 
+    title: string; 
+    description: string; 
+    fields: FormField[]; 
+    status: FormStatus;
+  }) => void;
   updateForm: (form: Form) => void;
   updateFormStatus: (formId: string, status: FormStatus) => void;
   getFormById: (id: string) => Form | undefined;
@@ -55,7 +60,12 @@ export const FormProvider = ({ children }: { children: ReactNode }) => {
   }, [currentUser]);
 
   // Create a new form
-  const createForm = useCallback((formData: Omit<Form, "id" | "createdBy" | "createdAt" | "updatedAt" | "slug" | "submissionCount">) => {
+  const createForm = useCallback((formData: { 
+    title: string; 
+    description: string; 
+    fields: FormField[]; 
+    status: FormStatus;
+  }) => {
     if (!currentUser) return;
     
     const now = new Date().toISOString();
