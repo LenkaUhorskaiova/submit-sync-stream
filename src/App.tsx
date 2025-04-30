@@ -16,6 +16,7 @@ import FormView from "./pages/FormView";
 import SubmissionList from "./pages/SubmissionList";
 import SubmissionView from "./pages/SubmissionView";
 import NotFound from "./pages/NotFound";
+import PublicForm from "./pages/PublicForm"; // New import
 
 const queryClient = new QueryClient();
 
@@ -37,6 +38,7 @@ const App = () => (
                 <Route path="/submissions" element={<SubmissionList />} />
                 <Route path="/submissions/:submissionId" element={<SubmissionView />} />
               </Route>
+              <Route path="/form/:slug" element={<PublicForm />} /> {/* New route for public forms */}
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
