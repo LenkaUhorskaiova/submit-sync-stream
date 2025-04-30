@@ -56,7 +56,7 @@ const FormBuilderPage = () => {
       return;
     }
     
-    if (formData.fields.length === 0) {
+    if (formData.fields && formData.fields.length === 0) {
       toast.error("Please add at least one field to your form");
       return;
     }
@@ -69,8 +69,8 @@ const FormBuilderPage = () => {
       // Create new form
       createForm({
         title: formData.title,
-        description: formData.description,
-        fields: formData.fields,
+        description: formData.description || "",
+        fields: formData.fields || [],
         status: "draft",
       });
       toast.success("New form created successfully");
