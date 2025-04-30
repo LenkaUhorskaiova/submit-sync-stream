@@ -69,7 +69,7 @@ const FormBuilderPage = () => {
       // Create new form
       createForm({
         title: formData.title,
-        description: formData.description || "",
+        description: formData.description || "", // Ensure description is always defined
         fields: formData.fields || [], // Ensure fields is always defined
         status: "draft",
       });
@@ -158,7 +158,7 @@ const FormBuilderPage = () => {
                         onClick={handleSubmitForApproval} 
                         variant="secondary" 
                         className="w-full"
-                        disabled={formData.fields.length === 0}
+                        disabled={formData.fields?.length === 0}
                       >
                         Submit for Approval
                       </Button>
@@ -199,16 +199,11 @@ const FormBuilderPage = () => {
                         onClick={() => {
                           // Clone the form
                           const newForm = {
-                            ...formData,
                             title: `${formData.title} (Copy)`,
-                            status: "draft",
+                            description: formData.description || "", // Ensure description is always defined
+                            fields: formData.fields || [], // Ensure fields is always defined
+                            status: "draft" as const, // Use const assertion to ensure correct type
                           };
-                          delete (newForm as any).id;
-                          delete (newForm as any).createdAt;
-                          delete (newForm as any).updatedAt;
-                          delete (newForm as any).submissionCount;
-                          delete (newForm as any).approvedAt;
-                          delete (newForm as any).approvedBy;
                           
                           createForm(newForm);
                           toast.success("Form cloned successfully");
