@@ -7,6 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 
 import { AuthProvider } from "./context/AuthContext";
 import { FormProvider } from "./context/FormContext";
+import Layout from "./components/Layout/Layout";
 
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
@@ -28,12 +29,14 @@ const App = () => (
           <BrowserRouter>
             <Routes>
               <Route path="/" element={<Index />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/form-builder" element={<FormBuilder />} />
-              <Route path="/form-builder/:formId" element={<FormBuilder />} />
-              <Route path="/forms/:formId" element={<FormView />} />
-              <Route path="/submissions" element={<SubmissionList />} />
-              <Route path="/submissions/:submissionId" element={<SubmissionView />} />
+              <Route element={<Layout />}>
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/form-builder" element={<FormBuilder />} />
+                <Route path="/form-builder/:formId" element={<FormBuilder />} />
+                <Route path="/forms/:formId" element={<FormView />} />
+                <Route path="/submissions" element={<SubmissionList />} />
+                <Route path="/submissions/:submissionId" element={<SubmissionView />} />
+              </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

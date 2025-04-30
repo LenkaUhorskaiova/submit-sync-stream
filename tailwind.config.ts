@@ -60,6 +60,9 @@ export default {
 				success: {
 					DEFAULT: 'hsl(var(--success))',
 					foreground: 'hsl(var(--success-foreground))'
+				},
+				floe: {
+					blue: '#0057d9'
 				}
 			},
 			borderRadius: {
