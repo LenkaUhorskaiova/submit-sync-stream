@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -9,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { ArrowLeft, Check, X, AlertTriangle, FileDown } from "lucide-react";
+import { ArrowLeft, Check, X, AlertTriangle, FileDown, Mail } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -19,6 +18,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { format } from "date-fns";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 const FormView = () => {
   const navigate = useNavigate();
@@ -30,6 +32,10 @@ const FormView = () => {
   const [auditLogs, setAuditLogs] = useState<ReturnType<typeof getAuditLogsByEntityId>>([]);
   const [showApprovalDialog, setShowApprovalDialog] = useState(false);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
+  const [showEmailDialog, setShowEmailDialog] = useState(false);
+  const [emailList, setEmailList] = useState("");
+  const [emailSubject, setEmailSubject] = useState("");
+  const [emailMessage, setEmailMessage] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
@@ -53,6 +59,12 @@ const FormView = () => {
     setForm(formData);
     setAuditLogs(getAuditLogsByEntityId(formId));
     setIsAdmin(currentUser?.role === "admin");
+
+    // Pre-fill email fields when form data is loaded
+    if (formData) {
+      setEmailSubject(`Please complete the ${formData.title} form`);
+      setEmailMessage(`Hello,\n\nPlease complete the ${formData.title} form using the link below:\n\n[Form Link]\n\nThank you!`);
+    }
   }, [formId, isAuthenticated, navigate, getFormById, getAuditLogsByEntityId, currentUser]);
 
   const handleApprove = () => {
@@ -79,6 +91,31 @@ const FormView = () => {
     const updatedForm = getFormById(formId);
     setForm(updatedForm);
     setAuditLogs(getAuditLogsByEntityId(formId));
+  };
+
+  const handleSendEmails = () => {
+    if (!form) return;
+    
+    // Split the email list by commas or new lines
+    const emails = emailList.split(/[\s,]+/).filter(email => email.trim().length > 0);
+    
+    if (emails.length === 0) {
+      toast.error("Please enter at least one email address");
+      return;
+    }
+    
+    // Generate form URL to include in the email
+    const formUrl = `${window.location.origin}/form/${form.slug}`;
+    
+    // In a real application, this would send an API request
+    // Here we'll just show a success message
+    toast.success(`Email invitation sent to ${emails.length} recipients`);
+    console.log("Sending form link to emails:", emails);
+    console.log("Form URL:", formUrl);
+    console.log("Subject:", emailSubject);
+    console.log("Message:", emailMessage.replace("[Form Link]", formUrl));
+    
+    setShowEmailDialog(false);
   };
 
   const getStatusColor = (status: string | undefined) => {
@@ -163,7 +200,7 @@ const FormView = () => {
               )}
             </CardContent>
             {form.status === "approved" && (
-              <CardFooter className="flex justify-end">
+              <CardFooter className="flex justify-end gap-4">
                 <Button variant="outline" onClick={() => {
                   // Generate form URL
                   const formUrl = `${window.location.origin}/form/${form.slug}`;
@@ -171,6 +208,10 @@ const FormView = () => {
                   toast.success("Form URL copied to clipboard");
                 }}>
                   Copy Form URL
+                </Button>
+                <Button variant="outline" onClick={() => setShowEmailDialog(true)}>
+                  <Mail className="h-4 w-4 mr-2" />
+                  Email Form Link
                 </Button>
               </CardFooter>
             )}
@@ -283,6 +324,56 @@ const FormView = () => {
             <Button onClick={handleReject} variant="destructive">
               <X className="mr-2 h-4 w-4" />
               Reject Form
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Email Dialog */}
+      <Dialog open={showEmailDialog} onOpenChange={setShowEmailDialog}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Email Form Link</DialogTitle>
+            <DialogDescription>
+              Send the form link to multiple email addresses. Enter email addresses separated by commas or new lines.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="emails">Email Addresses</Label>
+              <Textarea
+                id="emails"
+                placeholder="email1@example.com, email2@example.com"
+                value={emailList}
+                onChange={(e) => setEmailList(e.target.value)}
+                className="min-h-[100px]"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="subject">Email Subject</Label>
+              <Input
+                id="subject"
+                value={emailSubject}
+                onChange={(e) => setEmailSubject(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="message">Email Message</Label>
+              <Textarea
+                id="message"
+                value={emailMessage}
+                onChange={(e) => setEmailMessage(e.target.value)}
+                className="min-h-[120px]"
+                placeholder="Include [Form Link] where you want the form URL to appear."
+              />
+              <p className="text-xs text-muted-foreground">Use [Form Link] as a placeholder for the form URL.</p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEmailDialog(false)}>Cancel</Button>
+            <Button onClick={handleSendEmails}>
+              <Mail className="mr-2 h-4 w-4" />
+              Send Emails
             </Button>
           </DialogFooter>
         </DialogContent>
