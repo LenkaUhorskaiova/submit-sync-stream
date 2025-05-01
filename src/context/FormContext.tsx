@@ -1,10 +1,11 @@
 
 import { createContext, useContext, useState, ReactNode, useCallback } from "react";
-import { Form, FormField, FormStatus, Submission, SubmissionStatus, forms as initialForms, submissions as initialSubmissions, auditLogs as initialAuditLogs, AuditLog } from "../utils/dummyData";
+import { Form, FormField, FormStatus, Submission, SubmissionStatus, forms as initialForms, submissions as initialSubmissions, auditLogs as initialAuditLogs, AuditLog, FieldValue } from "../utils/dummyData";
 import { useAuth } from "./AuthContext";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import { Json } from "@/integrations/supabase/types";
 
 interface FormContextType {
   forms: Form[];
@@ -424,6 +425,15 @@ export const FormProvider = ({ children }: { children: ReactNode }) => {
     return auditLogs.filter(log => log.entityId === entityId);
   }, [auditLogs]);
 
+  // Helper function to safely convert Json to Record<string, FieldValue>
+  const convertJsonToFieldValues = (jsonData: Json): Record<string, FieldValue> => {
+    if (typeof jsonData === 'object' && jsonData !== null) {
+      return jsonData as Record<string, FieldValue>;
+    }
+    // Return empty object as fallback
+    return {};
+  };
+
   // Fetch forms from Supabase
   useQuery({
     queryKey: ['forms'],
@@ -507,7 +517,7 @@ export const FormProvider = ({ children }: { children: ReactNode }) => {
           formId: sub.form_id,
           userId: sub.user_id || "",
           status: sub.status as SubmissionStatus,
-          values: sub.values,
+          values: convertJsonToFieldValues(sub.values),
           createdAt: sub.created_at,
           updatedAt: sub.updated_at,
           approvedBy: sub.approved_by || undefined,
