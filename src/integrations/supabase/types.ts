@@ -9,7 +9,187 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      audit_logs: {
+        Row: {
+          action: string
+          entity_id: string
+          entity_type: string
+          id: string
+          new_value: string | null
+          previous_value: string | null
+          timestamp: string
+          user_id: string
+        }
+        Insert: {
+          action: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          new_value?: string | null
+          previous_value?: string | null
+          timestamp?: string
+          user_id: string
+        }
+        Update: {
+          action?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          new_value?: string | null
+          previous_value?: string | null
+          timestamp?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      form_fields: {
+        Row: {
+          created_at: string
+          description: string | null
+          field_order: number
+          form_id: string
+          id: string
+          label: string
+          options: string[] | null
+          placeholder: string | null
+          required: boolean
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          field_order: number
+          form_id: string
+          id?: string
+          label: string
+          options?: string[] | null
+          placeholder?: string | null
+          required?: boolean
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          field_order?: number
+          form_id?: string
+          id?: string
+          label?: string
+          options?: string[] | null
+          placeholder?: string | null
+          required?: boolean
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "form_fields_form_id_fkey"
+            columns: ["form_id"]
+            isOneToOne: false
+            referencedRelation: "forms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      forms: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          rejected_at: string | null
+          rejected_by: string | null
+          slug: string
+          status: string
+          submission_count: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          rejected_at?: string | null
+          rejected_by?: string | null
+          slug: string
+          status: string
+          submission_count?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          rejected_at?: string | null
+          rejected_by?: string | null
+          slug?: string
+          status?: string
+          submission_count?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      submissions: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          form_id: string
+          id: string
+          rejected_at: string | null
+          rejected_by: string | null
+          status: string
+          updated_at: string
+          user_id: string | null
+          values: Json
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          form_id: string
+          id?: string
+          rejected_at?: string | null
+          rejected_by?: string | null
+          status: string
+          updated_at?: string
+          user_id?: string | null
+          values: Json
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          form_id?: string
+          id?: string
+          rejected_at?: string | null
+          rejected_by?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+          values?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "submissions_form_id_fkey"
+            columns: ["form_id"]
+            isOneToOne: false
+            referencedRelation: "forms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
