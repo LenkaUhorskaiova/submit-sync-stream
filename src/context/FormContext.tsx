@@ -26,6 +26,12 @@ interface FormContextType {
   getSubmissionById: (id: string) => Submission | undefined;
   updateSubmissionStatus: (submissionId: string, status: SubmissionStatus) => void;
   getAuditLogsByEntityId: (entityId: string) => AuditLog[];
+  searchForms: (query: string, status?: FormStatus, createdBy?: string, page?: number, perPage?: number) => {
+    forms: Form[],
+    totalCount: number,
+    currentPage: number,
+    totalPages: number
+  };
 }
 
 const FormContext = createContext<FormContextType | undefined>(undefined);
@@ -82,6 +88,54 @@ export const FormProvider = ({ children }: { children: ReactNode }) => {
     return auditLogs.filter(log => log.entityId === entityId);
   };
 
+  // Search and pagination function for forms
+  const searchForms = (
+    query: string = "", 
+    status?: FormStatus, 
+    createdBy?: string,
+    page: number = 1,
+    perPage: number = 10
+  ) => {
+    let filteredForms = [...forms];
+    
+    // Apply filters
+    if (query) {
+      const lowercaseQuery = query.toLowerCase();
+      filteredForms = filteredForms.filter(form => 
+        form.title.toLowerCase().includes(lowercaseQuery) || 
+        (form.description && form.description.toLowerCase().includes(lowercaseQuery))
+      );
+    }
+    
+    if (status) {
+      filteredForms = filteredForms.filter(form => form.status === status);
+    }
+    
+    if (createdBy) {
+      filteredForms = filteredForms.filter(form => form.createdBy === createdBy);
+    }
+    
+    // Sort by creation date (newest first)
+    filteredForms.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    
+    // Calculate pagination values
+    const totalCount = filteredForms.length;
+    const totalPages = Math.ceil(totalCount / perPage);
+    const currentPage = Math.min(Math.max(1, page), totalPages || 1);
+    const start = (currentPage - 1) * perPage;
+    const end = start + perPage;
+    
+    // Slice the array for pagination
+    const paginatedForms = filteredForms.slice(start, end);
+    
+    return {
+      forms: paginatedForms,
+      totalCount,
+      currentPage,
+      totalPages
+    };
+  };
+
   const value = {
     forms,
     submissions,
@@ -96,6 +150,7 @@ export const FormProvider = ({ children }: { children: ReactNode }) => {
     getSubmissionById,
     updateSubmissionStatus,
     getAuditLogsByEntityId,
+    searchForms,
   };
 
   return <FormContext.Provider value={value}>{children}</FormContext.Provider>;

@@ -3,6 +3,7 @@ import { useCallback } from "react";
 import { Form, Submission, SubmissionStatus } from "../utils/dummyData";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { sendSubmissionConfirmation } from "../utils/emailUtils";
 
 export const useSubmissionOperations = (
   currentUserId: string | undefined,
@@ -13,8 +14,6 @@ export const useSubmissionOperations = (
 ) => {
   // Create submission
   const createSubmission = useCallback(async (formId: string, values: Record<string, any>) => {
-    if (!currentUserId) return;
-    
     try {
       const form = forms.find(f => f.id === formId);
       if (!form) {
@@ -22,14 +21,18 @@ export const useSubmissionOperations = (
         return;
       }
       
+      // Extract metadata if present
+      const metadata = values.__meta || {};
+      const valuesForStorage = { ...values };
+      
       // Insert submission into Supabase
       const { data: submissionResult, error } = await supabase
         .from('submissions')
         .insert({
           form_id: formId,
-          user_id: currentUserId,
+          user_id: currentUserId || null,
           status: 'pending',
-          values: values
+          values: valuesForStorage
         })
         .select()
         .single();
@@ -49,9 +52,10 @@ export const useSubmissionOperations = (
       const newSubmission: Submission = {
         id: submissionResult.id,
         formId,
-        userId: currentUserId,
+        userId: currentUserId || "",
         status: "pending",
         values,
+        metadata,
         createdAt: submissionResult.created_at,
         updatedAt: submissionResult.updated_at,
       };
@@ -69,9 +73,20 @@ export const useSubmissionOperations = (
       
       await addAuditLog(newSubmission.id, "submission", "create", undefined, "pending");
       toast.success("Form submitted successfully");
+      
+      // Send confirmation email if user email is available in values
+      if (values.email) {
+        const emailSent = await sendSubmissionConfirmation(values.email, form, newSubmission);
+        if (emailSent) {
+          toast.success("Confirmation email sent");
+        }
+      }
+      
+      return newSubmission;
     } catch (error) {
       console.error('Error creating submission:', error);
       toast.error('Failed to create submission');
+      return null;
     }
   }, [currentUserId, forms, addAuditLog, updateSubmissionsState, updateFormsState]);
 
