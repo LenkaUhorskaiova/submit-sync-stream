@@ -16,9 +16,9 @@ interface FormContextType {
     description: string; 
     fields: FormField[]; 
     status: FormStatus;
-  }) => void;
-  updateForm: (form: Form) => void;
-  updateFormStatus: (formId: string, status: FormStatus) => void;
+  }) => Promise<string | null>;
+  updateForm: (form: Form) => Promise<boolean>;
+  updateFormStatus: (formId: string, status: FormStatus) => Promise<boolean>;
   getFormById: (id: string) => Form | undefined;
   getFormBySlug: (slug: string) => Form | undefined;
   createSubmission: (formId: string, values: Record<string, any>) => void;

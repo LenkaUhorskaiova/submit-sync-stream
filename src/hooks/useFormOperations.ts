@@ -16,7 +16,7 @@ export const useFormOperations = (
     description: string; 
     fields: FormField[]; 
     status: FormStatus;
-  }) => {
+  }): Promise<string | null> => {
     if (!currentUserId) {
       toast.error("You must be logged in to create a form");
       return null;
@@ -102,8 +102,8 @@ export const useFormOperations = (
   }, [currentUserId, addAuditLog, updateFormsState]);
 
   // Update an existing form
-  const updateForm = useCallback(async (updatedForm: Form) => {
-    if (!currentUserId) return;
+  const updateForm = useCallback(async (updatedForm: Form): Promise<boolean> => {
+    if (!currentUserId) return false;
     
     try {
       // Update form in Supabase
@@ -158,16 +158,18 @@ export const useFormOperations = (
       
       await addAuditLog(updatedForm.id, "form", "update");
       toast.success("Form updated successfully");
+      return true;
       
     } catch (error) {
       console.error('Error updating form:', error);
       toast.error('Failed to update form');
+      return false;
     }
   }, [currentUserId, addAuditLog, updateFormsState]);
 
   // Update form status
-  const updateFormStatus = useCallback(async (formId: string, status: FormStatus) => {
-    if (!currentUserId) return;
+  const updateFormStatus = useCallback(async (formId: string, status: FormStatus): Promise<boolean> => {
+    if (!currentUserId) return false;
     
     try {
       const now = new Date().toISOString();
@@ -216,10 +218,12 @@ export const useFormOperations = (
       });
       
       toast.success(`Form status updated to ${status}`);
+      return true;
       
     } catch (error) {
       console.error('Error updating form status:', error);
       toast.error('Failed to update form status');
+      return false;
     }
   }, [currentUserId, addAuditLog, updateFormsState]);
 

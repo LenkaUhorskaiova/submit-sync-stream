@@ -73,8 +73,12 @@ const FormBuilderPage = () => {
     try {
       if (formId && getFormById(formId)) {
         // Update existing form
-        await updateForm(formData as FormType);
-        toast.success("Form saved successfully");
+        const success = await updateForm(formData as FormType);
+        if (success) {
+          toast.success("Form saved successfully");
+        } else {
+          setError("Failed to update form. Please try again.");
+        }
       } else {
         // Create new form
         const newFormId = await createForm({
@@ -104,9 +108,13 @@ const FormBuilderPage = () => {
     
     setIsSaving(true);
     try {
-      await updateFormStatus(formId, "pending");
-      toast.success("Form submitted for approval");
-      navigate("/dashboard");
+      const success = await updateFormStatus(formId, "pending");
+      if (success) {
+        toast.success("Form submitted for approval");
+        navigate("/dashboard");
+      } else {
+        setError("Failed to submit form for approval");
+      }
     } catch (error: any) {
       setError(`Error: ${error.message || "An unexpected error occurred"}`);
       toast.error(`Error: ${error.message || "An unexpected error occurred"}`);
@@ -253,7 +261,7 @@ const FormBuilderPage = () => {
                       <Button 
                         variant="outline" 
                         className="mt-4"
-                        onClick={() => {
+                        onClick={async () => {
                           // Clone the form
                           const newForm = {
                             title: `${formData.title} (Copy)`,
@@ -263,7 +271,8 @@ const FormBuilderPage = () => {
                           };
                           
                           setIsSaving(true);
-                          createForm(newForm).then((newFormId) => {
+                          try {
+                            const newFormId = await createForm(newForm);
                             if (newFormId) {
                               toast.success("Form cloned successfully");
                               navigate(`/form-builder/${newFormId}`);
@@ -271,12 +280,12 @@ const FormBuilderPage = () => {
                               setError("Failed to clone form");
                               toast.error("Failed to clone form");
                             }
-                          }).catch(error => {
+                          } catch (error: any) {
                             setError(`Error cloning form: ${error.message || "An unexpected error occurred"}`);
                             toast.error(`Error cloning form: ${error.message || "An unexpected error occurred"}`);
-                          }).finally(() => {
+                          } finally {
                             setIsSaving(false);
-                          });
+                          }
                         }}
                         disabled={isSaving}
                       >
