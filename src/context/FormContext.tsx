@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useState, ReactNode } from "react";
 import { Form, FormField, FormStatus, Submission, SubmissionStatus, forms as initialForms, submissions as initialSubmissions, auditLogs as initialAuditLogs, AuditLog } from "../utils/dummyData";
 import { useAuth } from "./AuthContext";
@@ -63,7 +64,7 @@ export const FormProvider = ({ children }: { children: ReactNode }) => {
     forms
   );
 
-  // Load data from Supabase
+  // Load data from Supabase with fallback to dummy data
   useFormData(currentUser?.id, setForms, setSubmissions, setAuditLogs);
 
   // Getter utility functions
