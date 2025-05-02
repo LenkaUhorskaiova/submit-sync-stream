@@ -90,7 +90,15 @@ export const useFormOperations = (
       
       // Place the new form at the beginning of the array to ensure it shows up in recent forms
       updateFormsState(prev => [newForm, ...prev]);
-      await addAuditLog(newForm.id, "form", "create", undefined, "draft");
+      
+      // Add audit log
+      try {
+        await addAuditLog(newForm.id, "form", "create", undefined, "draft");
+      } catch (auditError) {
+        console.error("Failed to create audit log:", auditError);
+        // Don't fail the form creation if audit log fails
+      }
+      
       toast.success("Form created successfully");
       return newForm.id;
       
@@ -103,7 +111,10 @@ export const useFormOperations = (
 
   // Update an existing form
   const updateForm = useCallback(async (updatedForm: Form): Promise<boolean> => {
-    if (!currentUserId) return false;
+    if (!currentUserId) {
+      toast.error("You must be logged in to update a form");
+      return false;
+    }
     
     try {
       // Update form in Supabase
@@ -156,20 +167,30 @@ export const useFormOperations = (
         )
       );
       
-      await addAuditLog(updatedForm.id, "form", "update");
+      // Add audit log
+      try {
+        await addAuditLog(updatedForm.id, "form", "update");
+      } catch (auditError) {
+        console.error("Failed to create audit log:", auditError);
+        // Don't fail the form update if audit log fails
+      }
+      
       toast.success("Form updated successfully");
       return true;
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating form:', error);
-      toast.error('Failed to update form');
+      toast.error(`Failed to update form: ${error.message}`);
       return false;
     }
   }, [currentUserId, addAuditLog, updateFormsState]);
 
   // Update form status
   const updateFormStatus = useCallback(async (formId: string, status: FormStatus): Promise<boolean> => {
-    if (!currentUserId) return false;
+    if (!currentUserId) {
+      toast.error("You must be logged in to update form status");
+      return false;
+    }
     
     try {
       const now = new Date().toISOString();
@@ -209,7 +230,13 @@ export const useFormOperations = (
               updates.rejectedAt = now;
             }
             
-            addAuditLog(formId, "form", "status_update", prevStatus, status);
+            // Add audit log
+            try {
+              addAuditLog(formId, "form", "status_update", prevStatus, status);
+            } catch (auditError) {
+              console.error("Failed to create audit log:", auditError);
+              // Don't fail the status update if audit log fails
+            }
             
             return { ...form, ...updates };
           }
@@ -220,9 +247,9 @@ export const useFormOperations = (
       toast.success(`Form status updated to ${status}`);
       return true;
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating form status:', error);
-      toast.error('Failed to update form status');
+      toast.error(`Failed to update form status: ${error.message}`);
       return false;
     }
   }, [currentUserId, addAuditLog, updateFormsState]);
