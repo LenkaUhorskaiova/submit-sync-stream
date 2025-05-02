@@ -47,6 +47,7 @@ export type Submission = {
   userId: string;
   status: SubmissionStatus;
   values: Record<string, FieldValue>;
+  metadata: Record<string, any>; // Added metadata field
   createdAt: string;
   updatedAt: string;
   approvedBy?: string;
@@ -232,6 +233,7 @@ export const submissions: Submission[] = [
       field3: "Computer Science",
       field4: true,
     },
+    metadata: {}, // Added empty metadata
     createdAt: "2023-01-20T14:30:00Z",
     updatedAt: "2023-01-21T10:15:00Z",
     approvedBy: "user1",
@@ -248,6 +250,7 @@ export const submissions: Submission[] = [
       field3: "Literature",
       field4: true,
     },
+    metadata: {}, // Added empty metadata
     createdAt: "2023-01-22T09:45:00Z",
     updatedAt: "2023-01-22T09:45:00Z",
   },
@@ -262,6 +265,7 @@ export const submissions: Submission[] = [
       field3: "45000",
       field4: "I need financial assistance due to my family's current economic situation.",
     },
+    metadata: {}, // Added empty metadata
     createdAt: "2023-02-25T16:20:00Z",
     updatedAt: "2023-02-26T11:10:00Z",
     rejectedBy: "user1",
