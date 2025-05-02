@@ -26,7 +26,7 @@ const FormsTab = () => {
   const { currentUser } = useAuth();
   
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<FormStatus | "">("");
+  const [statusFilter, setStatusFilter] = useState<FormStatus | "all">("all");
   const [currentPage, setCurrentPage] = useState(1);
   const perPage = 10;
   
@@ -38,7 +38,7 @@ const FormsTab = () => {
   // Search results with pagination
   const searchResults = searchForms(
     searchQuery,
-    statusFilter as FormStatus || undefined,
+    statusFilter === "all" ? undefined : statusFilter,
     undefined, // createdBy filter not used here
     currentPage,
     perPage
@@ -155,7 +155,7 @@ const FormsTab = () => {
                 <Select 
                   value={statusFilter} 
                   onValueChange={(value) => {
-                    setStatusFilter(value as FormStatus | "");
+                    setStatusFilter(value as FormStatus | "all");
                     setCurrentPage(1); // Reset to first page on new filter
                   }}
                 >
@@ -163,7 +163,7 @@ const FormsTab = () => {
                     <SelectValue placeholder="All statuses" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All statuses</SelectItem>
+                    <SelectItem value="all">All statuses</SelectItem>
                     <SelectItem value="draft">Draft</SelectItem>
                     <SelectItem value="pending">Pending</SelectItem>
                     <SelectItem value="approved">Approved</SelectItem>
