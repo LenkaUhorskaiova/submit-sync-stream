@@ -17,7 +17,10 @@ export const useFormOperations = (
     fields: FormField[]; 
     status: FormStatus;
   }) => {
-    if (!currentUserId) return;
+    if (!currentUserId) {
+      toast.error("You must be logged in to create a form");
+      return null;
+    }
     
     const now = new Date().toISOString();
     const slug = generateSlug(formData.title);
@@ -37,7 +40,11 @@ export const useFormOperations = (
         .select()
         .single();
         
-      if (formError) throw formError;
+      if (formError) {
+        console.error('Error creating form:', formError);
+        toast.error(`Failed to create form: ${formError.message}`);
+        return null;
+      }
       
       // Insert form fields
       if (formData.fields.length > 0) {
@@ -56,7 +63,18 @@ export const useFormOperations = (
           .from('form_fields')
           .insert(fieldsToInsert);
           
-        if (fieldsError) throw fieldsError;
+        if (fieldsError) {
+          console.error('Error creating form fields:', fieldsError);
+          toast.error(`Failed to create form fields: ${fieldsError.message}`);
+          
+          // Clean up the partially created form
+          await supabase
+            .from('forms')
+            .delete()
+            .eq('id', formResult.id);
+            
+          return null;
+        }
       }
       
       // Create local form object
@@ -74,10 +92,12 @@ export const useFormOperations = (
       updateFormsState(prev => [newForm, ...prev]);
       await addAuditLog(newForm.id, "form", "create", undefined, "draft");
       toast.success("Form created successfully");
+      return newForm.id;
       
-    } catch (error) {
-      console.error('Error creating form:', error);
-      toast.error('Failed to create form');
+    } catch (error: any) {
+      console.error('Unexpected error creating form:', error);
+      toast.error(`Unexpected error: ${error.message || 'Failed to create form'}`);
+      return null;
     }
   }, [currentUserId, addAuditLog, updateFormsState]);
 

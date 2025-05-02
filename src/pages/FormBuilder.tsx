@@ -12,7 +12,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { ArrowLeft, Eye } from "lucide-react";
+import { ArrowLeft, Eye, Loader2 } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const FormBuilderPage = () => {
   const navigate = useNavigate();
@@ -26,6 +27,8 @@ const FormBuilderPage = () => {
     fields: [],
     status: "draft",
   });
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -48,42 +51,68 @@ const FormBuilderPage = () => {
   
   const handleFieldsUpdate = (updatedFields: FormType["fields"]) => {
     setFormData((prev) => ({ ...prev, fields: updatedFields }));
+    setError(null);
   };
   
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formData.title) {
+      setError("Please provide a form title");
       toast.error("Please provide a form title");
       return;
     }
     
     if (formData.fields && formData.fields.length === 0) {
+      setError("Please add at least one field to your form");
       toast.error("Please add at least one field to your form");
       return;
     }
     
-    if (formId && getFormById(formId)) {
-      // Update existing form
-      updateForm(formData as FormType);
-      toast.success("Form saved successfully");
-    } else {
-      // Create new form
-      createForm({
-        title: formData.title,
-        description: formData.description || "", // Ensure description is always defined
-        fields: formData.fields || [], // Ensure fields is always defined
-        status: "draft",
-      });
-      toast.success("New form created successfully");
-      navigate("/dashboard");
+    setIsSaving(true);
+    setError(null);
+    
+    try {
+      if (formId && getFormById(formId)) {
+        // Update existing form
+        await updateForm(formData as FormType);
+        toast.success("Form saved successfully");
+      } else {
+        // Create new form
+        const newFormId = await createForm({
+          title: formData.title,
+          description: formData.description || "", 
+          fields: formData.fields || [], 
+          status: "draft",
+        });
+        
+        if (newFormId) {
+          toast.success("New form created successfully");
+          navigate(`/form-builder/${newFormId}`);
+        } else {
+          setError("Failed to create form. Please try again.");
+        }
+      }
+    } catch (error: any) {
+      setError(`Error: ${error.message || "An unexpected error occurred"}`);
+      toast.error(`Error: ${error.message || "An unexpected error occurred"}`);
+    } finally {
+      setIsSaving(false);
     }
   };
   
-  const handleSubmitForApproval = () => {
+  const handleSubmitForApproval = async () => {
     if (!formId) return;
     
-    updateFormStatus(formId, "pending");
-    toast.success("Form submitted for approval");
-    navigate("/dashboard");
+    setIsSaving(true);
+    try {
+      await updateFormStatus(formId, "pending");
+      toast.success("Form submitted for approval");
+      navigate("/dashboard");
+    } catch (error: any) {
+      setError(`Error: ${error.message || "An unexpected error occurred"}`);
+      toast.error(`Error: ${error.message || "An unexpected error occurred"}`);
+    } finally {
+      setIsSaving(false);
+    }
   };
   
   const isFormEditable = formData.status === "draft";
@@ -99,6 +128,12 @@ const FormBuilderPage = () => {
           {formId ? "Edit Form" : "Create New Form"}
         </h1>
       </div>
+
+      {error && (
+        <Alert variant="destructive" className="mb-6">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
 
       {!isFormEditable && (
         <Card className="mb-6 border-warning/50 bg-warning/10">
@@ -130,9 +165,13 @@ const FormBuilderPage = () => {
                     <Input
                       id="title"
                       value={formData.title}
-                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                      onChange={(e) => {
+                        setFormData({ ...formData, title: e.target.value });
+                        if (e.target.value) setError(null);
+                      }}
                       placeholder="Enter form title"
-                      disabled={!isFormEditable}
+                      disabled={!isFormEditable || isSaving}
+                      className={!formData.title && error ? "border-red-500" : ""}
                     />
                   </div>
                   <div>
@@ -142,7 +181,7 @@ const FormBuilderPage = () => {
                       value={formData.description || ""}
                       onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                       placeholder="Enter form description"
-                      disabled={!isFormEditable}
+                      disabled={!isFormEditable || isSaving}
                     />
                   </div>
                 </div>
@@ -150,17 +189,35 @@ const FormBuilderPage = () => {
               <CardFooter className="flex flex-col space-y-2">
                 {isFormEditable && (
                   <>
-                    <Button onClick={handleSave} className="w-full">
-                      Save Form
+                    <Button 
+                      onClick={handleSave} 
+                      className="w-full" 
+                      disabled={isSaving}
+                    >
+                      {isSaving ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        "Save Form"
+                      )}
                     </Button>
                     {formId && (
                       <Button 
                         onClick={handleSubmitForApproval} 
                         variant="secondary" 
                         className="w-full"
-                        disabled={formData.fields?.length === 0}
+                        disabled={formData.fields?.length === 0 || isSaving}
                       >
-                        Submit for Approval
+                        {isSaving ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Submitting...
+                          </>
+                        ) : (
+                          "Submit for Approval"
+                        )}
                       </Button>
                     )}
                   </>
@@ -200,23 +257,37 @@ const FormBuilderPage = () => {
                           // Clone the form
                           const newForm = {
                             title: `${formData.title} (Copy)`,
-                            description: formData.description || "", // Ensure description is always defined
-                            fields: formData.fields || [], // Ensure fields is always defined
-                            status: "draft" as const, // Use const assertion to ensure correct type
+                            description: formData.description || "", 
+                            fields: formData.fields || [],
+                            status: "draft" as const,
                           };
                           
-                          createForm(newForm);
-                          toast.success("Form cloned successfully");
-                          // Redirect to the new form
-                          const newFormId = forms.find(f => f.title === newForm.title)?.id;
-                          if (newFormId) {
-                            navigate(`/form-builder/${newFormId}`);
-                          } else {
-                            navigate("/dashboard");
-                          }
+                          setIsSaving(true);
+                          createForm(newForm).then((newFormId) => {
+                            if (newFormId) {
+                              toast.success("Form cloned successfully");
+                              navigate(`/form-builder/${newFormId}`);
+                            } else {
+                              setError("Failed to clone form");
+                              toast.error("Failed to clone form");
+                            }
+                          }).catch(error => {
+                            setError(`Error cloning form: ${error.message || "An unexpected error occurred"}`);
+                            toast.error(`Error cloning form: ${error.message || "An unexpected error occurred"}`);
+                          }).finally(() => {
+                            setIsSaving(false);
+                          });
                         }}
+                        disabled={isSaving}
                       >
-                        Clone Form to Edit
+                        {isSaving ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Cloning...
+                          </>
+                        ) : (
+                          "Clone Form to Edit"
+                        )}
                       </Button>
                     </div>
                   )}
