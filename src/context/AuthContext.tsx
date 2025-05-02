@@ -1,7 +1,6 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { User } from "../utils/dummyData";
 import { toast } from "sonner";
 import { Session } from "@supabase/supabase-js";
 
@@ -13,9 +12,15 @@ interface Profile {
   email: string;
   username: string;
   role: UserRole;
+  created_at?: string;
+  updated_at?: string;
 }
 
-interface AuthUser extends Omit<User, "role"> {
+interface AuthUser {
+  id: string;
+  name: string;
+  email: string;
+  username: string;
   role: UserRole;
 }
 
@@ -105,12 +110,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
       if (data) {
-        setProfile(data as Profile);
+        const profileData = data as Profile;
+        setProfile(profileData);
+        
         // Update role from profile if available
-        if (currentUser && data.role) {
+        if (currentUser && profileData.role) {
           setCurrentUser({
             ...currentUser,
-            role: data.role as UserRole
+            role: profileData.role
           });
         }
       }
