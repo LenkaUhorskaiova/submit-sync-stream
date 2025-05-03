@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -127,6 +126,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             role: profileData.role as UserRole // Ensure proper type casting
           };
         });
+        
+        // Log the user's role for debugging
+        console.log("User profile loaded:", profileData);
+        console.log("User role:", profileData.role);
       }
     } catch (error) {
       console.error("Error fetching user profile:", error);
@@ -218,8 +221,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // Determine admin status solely from the profile role
-  const isAdmin = profile?.role === "admin";
+  // Determine admin status directly from the currentUser role
+  const isAdmin = currentUser?.role === "admin";
 
   const value = {
     currentUser,
