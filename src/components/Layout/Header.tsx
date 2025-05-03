@@ -45,16 +45,16 @@ const Header = () => {
             {isAdmin && (
               <>
                 <Link to="/users">
-                  <Button variant="outline" size="sm" className="hidden sm:flex items-center gap-2">
+                  <Button variant="outline" size="sm" className="flex items-center gap-2">
                     <Users className="h-4 w-4" />
-                    <span>Users</span>
+                    <span>Manage Users</span>
                   </Button>
                 </Link>
                 <Sheet>
                   <SheetTrigger asChild>
-                    <Button variant="outline" size="sm" className="hidden sm:flex items-center gap-2">
+                    <Button variant="outline" size="sm" className="sm:flex items-center gap-2">
                       <User className="h-4 w-4" />
-                      <span>Invite Users</span>
+                      <span>Invite User</span>
                     </Button>
                   </SheetTrigger>
                   <SheetContent>
