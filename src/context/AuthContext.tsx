@@ -52,12 +52,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setSession(newSession);
         if (newSession?.user) {
           // Initialize with basic user data
-          const userData = {
+          const userData: AuthUser = {
             id: newSession.user.id,
             name: newSession.user.user_metadata?.name || "User",
             email: newSession.user.email || "",
             username: newSession.user.user_metadata?.username || newSession.user.email?.split('@')[0] || "",
-            role: "user" // Default role until we fetch from profile
+            role: "user" as UserRole // Default role until we fetch from profile
           };
           
           setCurrentUser(userData);
@@ -79,12 +79,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       if (existingSession?.user) {
         // Initialize with basic user data
-        const userData = {
+        const userData: AuthUser = {
           id: existingSession.user.id,
           name: existingSession.user.user_metadata?.name || "User",
           email: existingSession.user.email || "",
           username: existingSession.user.user_metadata?.username || existingSession.user.email?.split('@')[0] || "",
-          role: "user" // Default role until we fetch from profile
+          role: "user" as UserRole // Default role until we fetch from profile
         };
         setCurrentUser(userData);
         
@@ -124,7 +124,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             ...prev,
             name: profileData.name || prev.name,
             username: profileData.username || prev.username,
-            role: profileData.role // Use the role from profiles table
+            role: profileData.role as UserRole // Ensure proper type casting
           };
         });
       }
