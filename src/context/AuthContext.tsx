@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -50,13 +51,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       (event, newSession) => {
         setSession(newSession);
         if (newSession?.user) {
+          // Initialize with basic user data
           const userData = {
             id: newSession.user.id,
             name: newSession.user.user_metadata?.name || "User",
             email: newSession.user.email || "",
             username: newSession.user.user_metadata?.username || newSession.user.email?.split('@')[0] || "",
-            role: newSession.user.user_metadata?.role || "user"
+            role: "user" // Default role until we fetch from profile
           };
+          
           setCurrentUser(userData);
           
           // Fetch profile data separately to avoid recursive auth calls
@@ -73,21 +76,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session: existingSession } }) => {
       setSession(existingSession);
-      setIsLoading(false);
       
       if (existingSession?.user) {
+        // Initialize with basic user data
         const userData = {
           id: existingSession.user.id,
           name: existingSession.user.user_metadata?.name || "User",
           email: existingSession.user.email || "",
           username: existingSession.user.user_metadata?.username || existingSession.user.email?.split('@')[0] || "",
-          role: existingSession.user.user_metadata?.role || "user"
+          role: "user" // Default role until we fetch from profile
         };
         setCurrentUser(userData);
         
         // Fetch profile data
         fetchUserProfile(existingSession.user.id);
       }
+      
+      setIsLoading(false);
     });
 
     return () => {
@@ -112,13 +117,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const profileData = data as Profile;
         setProfile(profileData);
         
-        // Update role from profile if available
-        if (currentUser && profileData.role) {
-          setCurrentUser({
-            ...currentUser,
-            role: profileData.role
-          });
-        }
+        // Update user with role from profile
+        setCurrentUser(prev => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            name: profileData.name || prev.name,
+            username: profileData.username || prev.username,
+            role: profileData.role // Use the role from profiles table
+          };
+        });
       }
     } catch (error) {
       console.error("Error fetching user profile:", error);
@@ -139,6 +147,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
       
       if (data.user) {
+        // After login success, we'll let the auth state listener handle updating the user
         toast.success(`Welcome back, ${data.user.email}!`);
         return true;
       }
@@ -209,7 +218,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const isAdmin = profile?.role === "admin" || currentUser?.role === "admin";
+  // Determine admin status solely from the profile role
+  const isAdmin = profile?.role === "admin";
 
   const value = {
     currentUser,

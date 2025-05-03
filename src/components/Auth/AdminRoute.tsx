@@ -4,7 +4,7 @@ import { useAuth } from "../../context/AuthContext";
 import { Loader2 } from "lucide-react";
 
 const AdminRoute = () => {
-  const { isAdmin, isLoading } = useAuth();
+  const { isAdmin, isLoading, profile } = useAuth();
 
   if (isLoading) {
     return (
@@ -14,7 +14,12 @@ const AdminRoute = () => {
     );
   }
 
-  return isAdmin ? <Outlet /> : <Navigate to="/dashboard" />;
+  // Strictly check if the profile role is admin
+  if (!profile || profile.role !== "admin") {
+    return <Navigate to="/dashboard" />;
+  }
+
+  return <Outlet />;
 };
 
 export default AdminRoute;
