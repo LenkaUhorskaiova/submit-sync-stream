@@ -1,116 +1,81 @@
 
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.0";
+import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const handler = async (req: Request): Promise<Response> => {
+serve(async (req) => {
   // Handle CORS preflight requests
-  if (req.method === "OPTIONS") {
+  if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    // Create Supabase client with admin privileges
     const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") || "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || ""
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
     );
 
-    // Get the request body
-    const { email, role = "user" } = await req.json();
-    
+    // Parse request body
+    const { email, role = 'user' } = await req.json();
+
     if (!email) {
       return new Response(
-        JSON.stringify({ error: "Email is required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: 'Email is required' }),
+        { 
+          status: 400, 
+          headers: { 'Content-Type': 'application/json', ...corsHeaders } 
+        }
       );
     }
 
-    // Get the authorization header
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: "Authorization header is required" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    console.log(`Creating user with email ${email} and role ${role}`);
 
-    // Extract the token from the authorization header
-    const token = authHeader.replace("Bearer ", "");
-    
-    // Verify the user making the request is authenticated
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
-    
-    if (userError || !user) {
-      return new Response(
-        JSON.stringify({ error: "Unauthorized - invalid token" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Check if the user is an admin by querying the profiles table
-    const { data: profileData, error: profileError } = await supabaseClient
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single();
-
-    if (profileError || !profileData || profileData.role !== "admin") {
-      return new Response(
-        JSON.stringify({ error: "Unauthorized - admin access required" }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Create the user
-    const { data: newUser, error: createUserError } = await supabaseClient.auth.admin.createUser({
+    // Create the user with the admin API
+    const { data: userData, error: createError } = await supabaseClient.auth.admin.createUser({
       email,
       email_confirm: false,
       user_metadata: { role },
+      role: 'authenticated',
     });
 
-    if (createUserError) {
-      return new Response(
-        JSON.stringify({ error: `Failed to create user: ${createUserError.message}` }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    if (createError) {
+      throw createError;
     }
 
-    // Send the user an invitation email to set their password
+    // Send the invitation email
     const { error: inviteError } = await supabaseClient.auth.admin.inviteUserByEmail(email);
 
     if (inviteError) {
-      return new Response(
-        JSON.stringify({ error: `Failed to send invitation: ${inviteError.message}` }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      throw inviteError;
     }
 
-    // Return success response
     return new Response(
-      JSON.stringify({ 
-        message: "User created and invitation sent successfully", 
-        userId: newUser?.user?.id 
-      }),
+      JSON.stringify({ message: `User invitation sent to ${email}` }),
       { 
         status: 200, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
+        headers: { 'Content-Type': 'application/json', ...corsHeaders } 
       }
     );
   } catch (error) {
-    console.error("Error in invite-user function:", error);
+    console.error('Error inviting user:', error.message);
+    
     return new Response(
       JSON.stringify({ error: error.message }),
       { 
         status: 500, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
+        headers: { 'Content-Type': 'application/json', ...corsHeaders } 
       }
     );
   }
-};
-
-serve(handler);
+});

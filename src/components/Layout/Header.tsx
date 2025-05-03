@@ -2,7 +2,7 @@
 import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { Button } from "../ui/button";
-import { LogOut, User, Shield } from "lucide-react";
+import { LogOut, User, Shield, Users } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -43,25 +43,33 @@ const Header = () => {
         {isAuthenticated && currentUser && (
           <div className="flex items-center gap-4">
             {isAdmin && (
-              <Sheet>
-                <SheetTrigger asChild>
+              <>
+                <Link to="/users">
                   <Button variant="outline" size="sm" className="hidden sm:flex items-center gap-2">
-                    <User className="h-4 w-4" />
-                    <span>Invite Users</span>
+                    <Users className="h-4 w-4" />
+                    <span>Users</span>
                   </Button>
-                </SheetTrigger>
-                <SheetContent>
-                  <SheetHeader>
-                    <SheetTitle>User Management</SheetTitle>
-                    <SheetDescription>
-                      Invite new users to the system
-                    </SheetDescription>
-                  </SheetHeader>
-                  <div className="mt-6">
-                    <UserManagement />
-                  </div>
-                </SheetContent>
-              </Sheet>
+                </Link>
+                <Sheet>
+                  <SheetTrigger asChild>
+                    <Button variant="outline" size="sm" className="hidden sm:flex items-center gap-2">
+                      <User className="h-4 w-4" />
+                      <span>Invite Users</span>
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent>
+                    <SheetHeader>
+                      <SheetTitle>User Management</SheetTitle>
+                      <SheetDescription>
+                        Invite new users to the system
+                      </SheetDescription>
+                    </SheetHeader>
+                    <div className="mt-6">
+                      <UserManagement />
+                    </div>
+                  </SheetContent>
+                </Sheet>
+              </>
             )}
             
             <DropdownMenu>
@@ -77,6 +85,14 @@ const Header = () => {
                   <span>{currentUser.email}</span>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
+                {isAdmin && (
+                  <Link to="/users">
+                    <DropdownMenuItem>
+                      <Users className="h-4 w-4 mr-2" />
+                      Manage Users
+                    </DropdownMenuItem>
+                  </Link>
+                )}
                 <DropdownMenuItem onClick={() => logout()}>
                   <LogOut className="h-4 w-4 mr-2" />
                   Logout

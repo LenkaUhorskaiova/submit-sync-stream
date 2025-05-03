@@ -19,6 +19,7 @@ import NotFound from "./pages/NotFound";
 import PublicForm from "./pages/PublicForm";
 import Login from "./pages/Auth/Login";
 import ResetPassword from "./pages/Auth/ResetPassword";
+import UserManagement from "./pages/UserManagement";
 import ProtectedRoute from "./components/Auth/ProtectedRoute";
 import AdminRoute from "./components/Auth/AdminRoute";
 
@@ -48,6 +49,7 @@ const App = () => (
                   <Route element={<AdminRoute />}>
                     <Route path="/form-builder" element={<FormBuilder />} />
                     <Route path="/form-builder/:formId" element={<FormBuilder />} />
+                    <Route path="/users" element={<UserManagement />} /> {/* New route for user management */}
                   </Route>
                 </Route>
               </Route>
