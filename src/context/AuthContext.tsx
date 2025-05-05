@@ -48,6 +48,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, newSession) => {
+        console.log("Auth state change event:", event);
         setSession(newSession);
         if (newSession?.user) {
           // Initialize with basic user data
@@ -56,7 +57,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             name: newSession.user.user_metadata?.name || "User",
             email: newSession.user.email || "",
             username: newSession.user.user_metadata?.username || newSession.user.email?.split('@')[0] || "",
-            role: "user" as UserRole // Default role until we fetch from profile
+            role: "user" // Default role until we fetch from profile
           };
           
           setCurrentUser(userData);
@@ -74,6 +75,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session: existingSession } }) => {
+      console.log("Existing session check:", existingSession ? "Found session" : "No session");
       setSession(existingSession);
       
       if (existingSession?.user) {
@@ -83,15 +85,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           name: existingSession.user.user_metadata?.name || "User",
           email: existingSession.user.email || "",
           username: existingSession.user.user_metadata?.username || existingSession.user.email?.split('@')[0] || "",
-          role: "user" as UserRole // Default role until we fetch from profile
+          role: "user" // Default role until we fetch from profile
         };
         setCurrentUser(userData);
         
         // Fetch profile data
         fetchUserProfile(existingSession.user.id);
+      } else {
+        setIsLoading(false);
       }
-      
-      setIsLoading(false);
     });
 
     return () => {
@@ -101,6 +103,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const fetchUserProfile = async (userId: string) => {
     try {
+      console.log("Fetching profile for user:", userId);
+      
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -109,10 +113,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) {
         console.error("Error fetching profile:", error);
+        setIsLoading(false);
         return;
       }
 
       if (data) {
+        console.log("Profile data received:", data);
         const profileData = data as Profile;
         setProfile(profileData);
         
@@ -130,9 +136,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // Log the user's role for debugging
         console.log("User profile loaded:", profileData);
         console.log("User role:", profileData.role);
+      } else {
+        console.log("No profile data found for user:", userId);
       }
     } catch (error) {
       console.error("Error fetching user profile:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -223,6 +233,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Determine admin status directly from the currentUser role
   const isAdmin = currentUser?.role === "admin";
+  
+  // Add additional debugging
+  console.log("Auth Context - isAdmin:", isAdmin, "currentUser:", currentUser);
 
   const value = {
     currentUser,

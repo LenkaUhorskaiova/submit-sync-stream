@@ -5,15 +5,17 @@ import { useAuth } from "../context/AuthContext";
 import Login from "./Auth/Login";
 
 const Index = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (isAuthenticated) {
+    // Only redirect after auth state is confirmed
+    if (!isLoading && isAuthenticated) {
       navigate("/dashboard");
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, isLoading, navigate]);
 
+  // Show login page if not authenticated or still loading
   return <Login />;
 };
 

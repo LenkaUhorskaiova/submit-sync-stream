@@ -24,6 +24,9 @@ import {
 const Header = () => {
   const { currentUser, isAuthenticated, isAdmin, logout } = useAuth();
 
+  // Debugging - log auth state
+  console.log("Header Auth State:", { isAuthenticated, isAdmin, currentUser });
+
   return (
     <header className="bg-white border-b border-border">
       <div className="container mx-auto flex items-center justify-between h-16 px-4">
