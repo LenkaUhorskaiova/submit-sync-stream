@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -42,6 +43,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
 
   // Check for existing session and set up auth state listener
   useEffect(() => {
@@ -50,6 +52,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       (event, newSession) => {
         console.log("Auth state change event:", event);
         setSession(newSession);
+        
         if (newSession?.user) {
           // Initialize with basic user data
           const userData: AuthUser = {
@@ -57,7 +60,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             name: newSession.user.user_metadata?.name || "User",
             email: newSession.user.email || "",
             username: newSession.user.user_metadata?.username || newSession.user.email?.split('@')[0] || "",
-            role: "user" // Default role until we fetch from profile
+            // Preserve existing role if available, otherwise default to user
+            role: currentUser?.role || "user" 
           };
           
           setCurrentUser(userData);
@@ -69,6 +73,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         } else {
           setCurrentUser(null);
           setProfile(null);
+          setIsAdmin(false);
+          setIsLoading(false);
         }
       }
     );
@@ -85,7 +91,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           name: existingSession.user.user_metadata?.name || "User",
           email: existingSession.user.email || "",
           username: existingSession.user.user_metadata?.username || existingSession.user.email?.split('@')[0] || "",
-          role: "user" // Default role until we fetch from profile
+          // Default role until we fetch from profile
+          role: "user"
         };
         setCurrentUser(userData);
         
@@ -104,6 +111,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const fetchUserProfile = async (userId: string) => {
     try {
       console.log("Fetching profile for user:", userId);
+
+      // Check if we should make the user an admin based on their email
+      // This is a backup mechanism in case the profile fetch fails
+      const emailDomain = currentUser?.email?.split('@')[1];
+      const isAdminEmail = emailDomain === "kineticsoftware.com"; // Change this based on your criteria
       
       const { data, error } = await supabase
         .from('profiles')
@@ -113,6 +125,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) {
         console.error("Error fetching profile:", error);
+        
+        // If we can't fetch the profile but have an admin email, still grant admin access
+        if (isAdminEmail) {
+          console.log("Admin access granted based on email domain");
+          setIsAdmin(true);
+          
+          // Update the user role to admin since we can't get the profile
+          setCurrentUser(prev => prev ? {
+            ...prev,
+            role: "admin"
+          } : null);
+        }
+        
         setIsLoading(false);
         return;
       }
@@ -129,18 +154,43 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             ...prev,
             name: profileData.name || prev.name,
             username: profileData.username || prev.username,
-            role: profileData.role as UserRole // Ensure proper type casting
+            role: profileData.role as UserRole
           };
         });
+        
+        // Set admin status based on profile role
+        setIsAdmin(profileData.role === "admin");
         
         // Log the user's role for debugging
         console.log("User profile loaded:", profileData);
         console.log("User role:", profileData.role);
+        console.log("isAdmin set to:", profileData.role === "admin");
       } else {
         console.log("No profile data found for user:", userId);
+        
+        // If no profile data but have an admin email, still grant admin access
+        if (isAdminEmail) {
+          console.log("Admin access granted based on email domain (no profile found)");
+          setIsAdmin(true);
+          
+          setCurrentUser(prev => prev ? {
+            ...prev,
+            role: "admin"
+          } : null);
+        }
       }
     } catch (error) {
       console.error("Error fetching user profile:", error);
+      
+      // Attempt to detect admin users by email as a fallback
+      if (currentUser?.email?.endsWith("@kineticsoftware.com")) {
+        console.log("Admin access granted based on email domain (error case)");
+        setIsAdmin(true);
+        setCurrentUser(prev => prev ? {
+          ...prev,
+          role: "admin"
+        } : null);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -231,9 +281,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // Determine admin status directly from the currentUser role
-  const isAdmin = currentUser?.role === "admin";
-  
   // Add additional debugging
   console.log("Auth Context - isAdmin:", isAdmin, "currentUser:", currentUser);
 

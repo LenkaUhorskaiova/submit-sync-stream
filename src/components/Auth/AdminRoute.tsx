@@ -4,7 +4,7 @@ import { useAuth } from "../../context/AuthContext";
 import { Loader2 } from "lucide-react";
 
 const AdminRoute = () => {
-  const { isAdmin, isLoading } = useAuth();
+  const { isAdmin, isLoading, isAuthenticated } = useAuth();
 
   if (isLoading) {
     return (
@@ -14,11 +14,18 @@ const AdminRoute = () => {
     );
   }
 
-  // Check if the user is an admin
+  // First check if user is authenticated
+  if (!isAuthenticated) {
+    return <Navigate to="/login" />;
+  }
+
+  // Then check if the user is an admin
   if (!isAdmin) {
+    console.log("Access denied: User is not an admin");
     return <Navigate to="/dashboard" />;
   }
 
+  console.log("Admin access granted");
   return <Outlet />;
 };
 
