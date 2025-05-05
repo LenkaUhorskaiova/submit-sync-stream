@@ -8,19 +8,16 @@ import { supabase } from "@/integrations/supabase/client";
  */
 export async function getUserRoleDirectly(userId: string): Promise<"admin" | "user" | null> {
   try {
-    // Use direct query instead of RPC to avoid TypeScript errors
+    // Use the security definer function we created to avoid recursion
     const { data, error } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', userId)
-      .single();
+      .rpc('get_user_role_safe', { user_id: userId });
     
     if (error) {
       console.error("Error getting user role:", error);
       return null;
     }
     
-    return data?.role as "admin" | "user" | null;
+    return data as "admin" | "user" | null;
   } catch (error) {
     console.error("Failed to get user role:", error);
     return null;

@@ -1,8 +1,8 @@
-
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Session } from "@supabase/supabase-js";
+import { getUserRoleDirectly, isAdminEmail } from "@/utils/authHelpers";
 
 type UserRole = "admin" | "user";
 
@@ -66,6 +66,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           
           setCurrentUser(userData);
           
+          // Check if email should grant admin access as a backup
+          const shouldBeAdmin = isAdminEmail(newSession.user.email);
+          if (shouldBeAdmin) {
+            setIsAdmin(true);
+            // Update the user role to admin
+            setCurrentUser(prev => prev ? {
+              ...prev,
+              role: "admin"
+            } : null);
+          }
+          
           // Fetch profile data separately to avoid recursive auth calls
           setTimeout(() => {
             fetchUserProfile(newSession.user.id);
@@ -96,6 +107,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         };
         setCurrentUser(userData);
         
+        // Check if email should grant admin access as a backup
+        if (isAdminEmail(existingSession.user.email)) {
+          setIsAdmin(true);
+          // Update the user role to admin based on email
+          setCurrentUser(prev => prev ? {
+            ...prev,
+            role: "admin"
+          } : null);
+        }
+        
         // Fetch profile data
         fetchUserProfile(existingSession.user.id);
       } else {
@@ -112,22 +133,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       console.log("Fetching profile for user:", userId);
 
-      // Check if we should make the user an admin based on their email
-      // This is a backup mechanism in case the profile fetch fails
-      const emailDomain = currentUser?.email?.split('@')[1];
-      const isAdminEmail = emailDomain === "kineticsoftware.com"; // Change this based on your criteria
+      // First try to get the role using our security-definer function
+      const role = await getUserRoleDirectly(userId);
       
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-
-      if (error) {
-        console.error("Error fetching profile:", error);
+      if (role) {
+        console.log("Got user role from security definer function:", role);
+        setIsAdmin(role === "admin");
         
-        // If we can't fetch the profile but have an admin email, still grant admin access
-        if (isAdminEmail) {
+        // Update current user with the role we found
+        setCurrentUser(prev => prev ? {
+          ...prev,
+          role: role
+        } : null);
+        
+        // Continue with trying to fetch full profile data
+      } else {
+        console.log("Could not get role from function, checking email");
+        // Fallback: Check if user should be admin based on email domain
+        if (currentUser?.email && isAdminEmail(currentUser.email)) {
           console.log("Admin access granted based on email domain");
           setIsAdmin(true);
           
@@ -137,60 +160,53 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             role: "admin"
           } : null);
         }
-        
-        setIsLoading(false);
-        return;
       }
 
-      if (data) {
-        console.log("Profile data received:", data);
-        const profileData = data as Profile;
-        setProfile(profileData);
-        
-        // Update user with role from profile
-        setCurrentUser(prev => {
-          if (!prev) return null;
-          return {
-            ...prev,
-            name: profileData.name || prev.name,
-            username: profileData.username || prev.username,
-            role: profileData.role as UserRole
-          };
-        });
-        
-        // Set admin status based on profile role
-        setIsAdmin(profileData.role === "admin");
-        
-        // Log the user's role for debugging
-        console.log("User profile loaded:", profileData);
-        console.log("User role:", profileData.role);
-        console.log("isAdmin set to:", profileData.role === "admin");
-      } else {
-        console.log("No profile data found for user:", userId);
-        
-        // If no profile data but have an admin email, still grant admin access
-        if (isAdminEmail) {
-          console.log("Admin access granted based on email domain (no profile found)");
-          setIsAdmin(true);
-          
-          setCurrentUser(prev => prev ? {
-            ...prev,
-            role: "admin"
-          } : null);
+      // Try to fetch the full profile
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', userId)
+          .single();
+
+        if (error) {
+          console.error("Error fetching profile:", error);
+          // We've already set admin status based on the getUserRoleDirectly function above
+          setIsLoading(false);
+          return;
         }
+
+        if (data) {
+          console.log("Profile data received:", data);
+          const profileData = data as Profile;
+          setProfile(profileData);
+          
+          // Update user with additional data from profile
+          setCurrentUser(prev => {
+            if (!prev) return null;
+            return {
+              ...prev,
+              name: profileData.name || prev.name,
+              username: profileData.username || prev.username,
+              role: profileData.role as UserRole
+            };
+          });
+          
+          // Set admin status based on profile role
+          setIsAdmin(profileData.role === "admin");
+          
+          console.log("User profile loaded:", profileData);
+          console.log("User role:", profileData.role);
+          console.log("isAdmin set to:", profileData.role === "admin");
+        } else {
+          console.log("No profile data found for user:", userId);
+        }
+      } catch (profileError) {
+        console.error("Error fetching user profile details:", profileError);
       }
     } catch (error) {
-      console.error("Error fetching user profile:", error);
-      
-      // Attempt to detect admin users by email as a fallback
-      if (currentUser?.email?.endsWith("@kineticsoftware.com")) {
-        console.log("Admin access granted based on email domain (error case)");
-        setIsAdmin(true);
-        setCurrentUser(prev => prev ? {
-          ...prev,
-          role: "admin"
-        } : null);
-      }
+      console.error("Error in profile fetching process:", error);
     } finally {
       setIsLoading(false);
     }
