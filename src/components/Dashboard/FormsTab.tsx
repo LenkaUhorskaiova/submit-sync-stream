@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "../../context/FormContext";
@@ -30,16 +29,16 @@ const FormsTab = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const perPage = 10;
   
-  // Get recent forms (10 most recent)
+  // Get ALL recent forms (10 most recent) regardless of who created them
   const recentForms = forms
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 10);
   
-  // Search results with pagination
+  // Search results with pagination - removed the createdBy filter to show all forms
   const searchResults = searchForms(
     searchQuery,
     statusFilter === "all" ? undefined : statusFilter,
-    undefined, // createdBy filter not used here
+    undefined, // removed createdBy filter to show all forms
     currentPage,
     perPage
   );
@@ -91,7 +90,7 @@ const FormsTab = () => {
 
   return (
     <div className="space-y-8">
-      {/* Recent Forms Section */}
+      {/* Recent Forms Section - Now shows all forms */}
       <Card>
         <CardHeader>
           <CardTitle>Recent Forms</CardTitle>
@@ -129,7 +128,7 @@ const FormsTab = () => {
         </CardContent>
       </Card>
       
-      {/* Find a Form Section */}
+      {/* Find a Form Section - Now searches all forms */}
       <Card>
         <CardHeader>
           <CardTitle>Find a Form</CardTitle>

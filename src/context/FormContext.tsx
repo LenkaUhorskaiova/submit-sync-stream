@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState, ReactNode } from "react";
 import { Form, FormField, FormStatus, Submission, SubmissionStatus, forms as initialForms, submissions as initialSubmissions, auditLogs as initialAuditLogs, AuditLog } from "../utils/dummyData";
 import { useAuth } from "./AuthContext";
@@ -88,11 +87,11 @@ export const FormProvider = ({ children }: { children: ReactNode }) => {
     return auditLogs.filter(log => log.entityId === entityId);
   };
 
-  // Search and pagination function for forms
+  // Modified searchForms function to show all forms regardless of who created them
   const searchForms = (
     query: string = "", 
     status?: FormStatus, 
-    createdBy?: string,
+    createdBy?: string, // This parameter is now optional and ignored if not provided
     page: number = 1,
     perPage: number = 10
   ) => {
@@ -111,6 +110,7 @@ export const FormProvider = ({ children }: { children: ReactNode }) => {
       filteredForms = filteredForms.filter(form => form.status === status);
     }
     
+    // Only filter by creator if explicitly requested
     if (createdBy) {
       filteredForms = filteredForms.filter(form => form.createdBy === createdBy);
     }
