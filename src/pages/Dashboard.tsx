@@ -22,6 +22,10 @@ const Dashboard = () => {
     }
   }, [isAuthenticated, navigate]);
 
+  useEffect(() => {
+    console.log("Dashboard forms:", forms.length, "Forms data:", forms);
+  }, [forms]);
+
   if (!isAuthenticated || !currentUser) {
     return null; // Will redirect via useEffect
   }

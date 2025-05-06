@@ -13,11 +13,12 @@ export const useFormData = (
   setSubmissions: React.Dispatch<React.SetStateAction<any[]>>,
   setAuditLogs: React.Dispatch<React.SetStateAction<AuditLog[]>>
 ) => {
-  // Set initial data immediately to ensure the app works without database
+  // Set initial data to ensure the app has something to display while loading
   useEffect(() => {
-    setForms(dummyForms);
-    setSubmissions(dummySubmissions);
-    setAuditLogs(dummyAuditLogs);
+    // We'll only use dummy data if we haven't loaded real data yet
+    setForms(prevForms => prevForms.length === 0 ? dummyForms : prevForms);
+    setSubmissions(prevSubmissions => prevSubmissions.length === 0 ? dummySubmissions : prevSubmissions);
+    setAuditLogs(prevLogs => prevLogs.length === 0 ? dummyAuditLogs : prevLogs);
   }, [setForms, setSubmissions, setAuditLogs]);
 
   // Fetch forms from Supabase
@@ -61,8 +62,14 @@ export const useFormData = (
         
         // Only update state if we got valid data
         if (transformedForms && transformedForms.length > 0) {
+          console.log("Forms loaded from database:", transformedForms.length);
           setForms(transformedForms);
           return transformedForms;
+        } else if (formsData && formsData.length > 0) {
+          // If we have forms data but transformation failed for some reason
+          console.log("Forms found in database but couldn't be properly transformed:", formsData.length);
+        } else {
+          console.log("No forms found in database, keeping existing forms");
         }
         
         return dummyForms;
