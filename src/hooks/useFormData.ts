@@ -42,20 +42,29 @@ export const useFormData = (
           throw formsError;
         }
         
-        // Fetch form fields
-        const { data: fieldsData, error: fieldsError } = await supabase
-          .from('form_fields')
-          .select('*');
-          
-        if (fieldsError) {
-          if (fieldsError.message.includes("permission denied")) {
-            console.warn("Permission denied for form_fields table, using dummy data instead");
-            return dummyForms;
+        // Try to fetch form fields, but handle the case where we don't have permission
+        let fieldsData = [];
+        try {
+          const { data, error } = await supabase
+            .from('form_fields')
+            .select('*');
+            
+          if (error) {
+            if (error.message.includes("permission denied")) {
+              console.warn("Permission denied for form_fields table, using dummy data instead");
+              // We'll continue with empty fields and work with what we have
+            } else {
+              throw error;
+            }
+          } else {
+            fieldsData = data || [];
           }
-          throw fieldsError;
+        } catch (fieldsError) {
+          console.warn("Error fetching form fields:", fieldsError);
+          // Continue with empty fields
         }
         
-        // Transform to local format
+        // Transform to local format - even with missing fields
         const transformedForms = formsData.map(form => 
           transformFormFromSupabase(form, fieldsData)
         );
