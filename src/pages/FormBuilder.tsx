@@ -36,9 +36,32 @@ const FormBuilderPage = () => {
       return;
     }
     
+    if (!currentUser?.role === "admin" && !formId) {
+      toast.error("You do not have permission to create forms");
+      navigate("/dashboard");
+      return;
+    }
+    
     if (formId) {
       const existingForm = getFormById(formId);
       if (existingForm) {
+        // Check if user is authorized to edit this form
+        const isCreator = existingForm.createdBy === currentUser?.id;
+        const isAdmin = currentUser?.role === "admin";
+        const isEditable = existingForm.status === "draft" || existingForm.status === "pending";
+        
+        if (!isEditable) {
+          toast.error("This form cannot be edited because it is in " + existingForm.status + " status");
+          navigate(`/forms/${formId}`);
+          return;
+        }
+        
+        if (!isCreator && !isAdmin) {
+          toast.error("You do not have permission to edit this form");
+          navigate("/dashboard");
+          return;
+        }
+        
         // If editing an existing form, populate the form data
         setFormData(existingForm);
       } else {
@@ -47,7 +70,7 @@ const FormBuilderPage = () => {
         navigate("/dashboard");
       }
     }
-  }, [isAuthenticated, navigate, formId, getFormById]);
+  }, [isAuthenticated, navigate, formId, getFormById, currentUser]);
   
   const handleFieldsUpdate = (updatedFields: FormType["fields"]) => {
     setFormData((prev) => ({ ...prev, fields: updatedFields }));
@@ -123,7 +146,8 @@ const FormBuilderPage = () => {
     }
   };
   
-  const isFormEditable = formData.status === "draft";
+  // A form is editable if it's in draft or pending status
+  const isFormEditable = formData.status === "draft" || formData.status === "pending";
   
   return (
     <div className="container mx-auto px-4 py-8">
@@ -211,7 +235,7 @@ const FormBuilderPage = () => {
                         "Save Form"
                       )}
                     </Button>
-                    {formId && (
+                    {formId && formData.status === "draft" && (
                       <Button 
                         onClick={handleSubmitForApproval} 
                         variant="secondary" 

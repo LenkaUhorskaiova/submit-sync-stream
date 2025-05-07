@@ -1,14 +1,14 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useForm } from "../context/FormContext";
-import { FieldValue, FormField } from "../utils/dummyData";
 import { RenderField } from "../components/FormBuilder/FieldTypes";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { ArrowLeft, Check, X, AlertTriangle, FileDown, Mail } from "lucide-react";
+import { ArrowLeft, Check, X, FileDown, Mail } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -17,7 +17,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { format } from "date-fns";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -37,6 +36,7 @@ const FormView = () => {
   const [emailSubject, setEmailSubject] = useState("");
   const [emailMessage, setEmailMessage] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
+  const [canEdit, setCanEdit] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -58,7 +58,18 @@ const FormView = () => {
     
     setForm(formData);
     setAuditLogs(getAuditLogsByEntityId(formId));
-    setIsAdmin(currentUser?.role === "admin");
+    
+    // Check if user is admin
+    const isUserAdmin = currentUser?.role === "admin";
+    setIsAdmin(isUserAdmin);
+    
+    // Check if user can edit this form
+    // A form is editable if:
+    // 1. It is in draft or pending status AND
+    // 2. User is either the creator or an admin
+    const isCreator = formData.createdBy === currentUser?.id;
+    const isFormEditable = formData.status === "draft" || formData.status === "pending";
+    setCanEdit(isFormEditable && (isCreator || isUserAdmin));
 
     // Pre-fill email fields when form data is loaded
     if (formData) {
@@ -67,30 +78,54 @@ const FormView = () => {
     }
   }, [formId, isAuthenticated, navigate, getFormById, getAuditLogsByEntityId, currentUser]);
 
-  const handleApprove = () => {
-    if (!formId) return;
+  const handleApprove = async () => {
+    if (!formId || !isAdmin) {
+      toast.error("You do not have permission to approve this form");
+      return;
+    }
     
-    updateFormStatus(formId, "approved");
-    toast.success("Form approved successfully");
-    setShowApprovalDialog(false);
+    if (form?.status !== "pending") {
+      toast.error("Only forms in pending status can be approved");
+      return;
+    }
     
-    // Refresh form data
-    const updatedForm = getFormById(formId);
-    setForm(updatedForm);
-    setAuditLogs(getAuditLogsByEntityId(formId));
+    const success = await updateFormStatus(formId, "approved");
+    if (success) {
+      toast.success("Form approved successfully");
+      setShowApprovalDialog(false);
+      
+      // Refresh form data
+      const updatedForm = getFormById(formId);
+      setForm(updatedForm);
+      setAuditLogs(getAuditLogsByEntityId(formId));
+    } else {
+      toast.error("Failed to approve form");
+    }
   };
 
-  const handleReject = () => {
-    if (!formId) return;
+  const handleReject = async () => {
+    if (!formId || !isAdmin) {
+      toast.error("You do not have permission to reject this form");
+      return;
+    }
     
-    updateFormStatus(formId, "rejected");
-    toast.success("Form rejected");
-    setShowRejectDialog(false);
+    if (form?.status !== "pending") {
+      toast.error("Only forms in pending status can be rejected");
+      return;
+    }
     
-    // Refresh form data
-    const updatedForm = getFormById(formId);
-    setForm(updatedForm);
-    setAuditLogs(getAuditLogsByEntityId(formId));
+    const success = await updateFormStatus(formId, "rejected");
+    if (success) {
+      toast.success("Form rejected");
+      setShowRejectDialog(false);
+      
+      // Refresh form data
+      const updatedForm = getFormById(formId);
+      setForm(updatedForm);
+      setAuditLogs(getAuditLogsByEntityId(formId));
+    } else {
+      toast.error("Failed to reject form");
+    }
   };
 
   const handleSendEmails = () => {
@@ -132,7 +167,12 @@ const FormView = () => {
     return null;
   }
   
+  // Only admins can approve/reject forms that are in pending status
   const canApproveOrReject = isAdmin && form.status === "pending";
+  
+  // Determine if the form is editable
+  const isFormEditable = (form.status === "draft" || form.status === "pending") && 
+                        (form.createdBy === currentUser?.id || isAdmin);
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -146,7 +186,7 @@ const FormView = () => {
         </div>
         <div className="flex items-center space-x-4">
           <Badge className={getStatusColor(form.status)}>{form.status}</Badge>
-          {form.status === "draft" && (
+          {isFormEditable && (
             <Button variant="outline" onClick={() => navigate(`/form-builder/${form.id}`)}>
               Edit Form
             </Button>
