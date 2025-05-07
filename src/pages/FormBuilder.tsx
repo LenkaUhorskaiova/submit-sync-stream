@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -36,7 +35,9 @@ const FormBuilderPage = () => {
       return;
     }
     
-    if (!currentUser?.role === "admin" && !formId) {
+    // Fix the comparison here - currentUser?.role === "admin" is a boolean comparison
+    // so we should check if it evaluates to false rather than comparing to a string "admin"
+    if (currentUser?.role !== "admin" && !formId) {
       toast.error("You do not have permission to create forms");
       navigate("/dashboard");
       return;
