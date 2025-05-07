@@ -34,44 +34,39 @@ export const useFormData = (
           .select('*');
           
         if (formsError) {
-          // If we get permission denied errors, use the dummy data instead
-          if (formsError.message.includes("permission denied")) {
-            console.warn("Permission denied for forms table, using dummy data instead");
-            return dummyForms;
-          }
           throw formsError;
         }
         
-        // Try to fetch form fields, but handle the case where we don't have permission
-        let fieldsData = [];
-        try {
-          const { data, error } = await supabase
-            .from('form_fields')
-            .select('*');
-            
-          if (error) {
-            if (error.message.includes("permission denied")) {
-              console.warn("Permission denied for form_fields table, using dummy data instead");
-              // We'll continue with empty fields and work with what we have
-            } else {
-              throw error;
-            }
-          } else {
-            fieldsData = data || [];
+        // Fetch form fields - with improved error handling
+        const { data: fieldsData, error: fieldsError } = await supabase
+          .from('form_fields')
+          .select('*');
+          
+        if (fieldsError) {
+          console.error('Error fetching form fields:', fieldsError);
+          toast.error('Failed to load form fields');
+          // Continue with empty fields but don't fail the whole operation
+          const transformedForms = formsData.map(form => 
+            transformFormFromSupabase(form, [])
+          );
+          
+          if (transformedForms && transformedForms.length > 0) {
+            setForms(transformedForms);
+            return transformedForms;
           }
-        } catch (fieldsError) {
-          console.warn("Error fetching form fields:", fieldsError);
-          // Continue with empty fields
+          
+          return dummyForms;
         }
         
-        // Transform to local format - even with missing fields
+        // Transform to local format with fields
         const transformedForms = formsData.map(form => 
-          transformFormFromSupabase(form, fieldsData)
+          transformFormFromSupabase(form, fieldsData || [])
         );
         
         // Only update state if we got valid data
         if (transformedForms && transformedForms.length > 0) {
           console.log("Forms loaded from database:", transformedForms.length);
+          console.log("Form fields loaded:", fieldsData?.length || 0);
           setForms(transformedForms);
           return transformedForms;
         } else if (formsData && formsData.length > 0) {
@@ -84,10 +79,7 @@ export const useFormData = (
         return dummyForms;
       } catch (error) {
         console.error('Error fetching forms:', error);
-        // Don't show error toast for permission denied errors - this is expected if RLS isn't set up
-        if (!error.message?.includes("permission denied")) {
-          toast.error('Failed to load forms');
-        }
+        toast.error('Failed to load forms');
         return dummyForms;
       }
     },
@@ -108,10 +100,6 @@ export const useFormData = (
           .select('*');
           
         if (error) {
-          if (error.message.includes("permission denied")) {
-            console.warn("Permission denied for submissions table, using dummy data instead");
-            return dummySubmissions;
-          }
           throw error;
         }
         
@@ -127,9 +115,7 @@ export const useFormData = (
         return dummySubmissions;
       } catch (error) {
         console.error('Error fetching submissions:', error);
-        if (!error.message?.includes("permission denied")) {
-          toast.error('Failed to load submissions');
-        }
+        toast.error('Failed to load submissions');
         return dummySubmissions;
       }
     },
@@ -149,10 +135,6 @@ export const useFormData = (
           .select('*');
           
         if (error) {
-          if (error.message.includes("permission denied")) {
-            console.warn("Permission denied for audit_logs table, using dummy data instead");
-            return dummyAuditLogs;
-          }
           throw error;
         }
         
@@ -175,9 +157,7 @@ export const useFormData = (
         return dummyAuditLogs;
       } catch (error) {
         console.error('Error fetching audit logs:', error);
-        if (!error.message?.includes("permission denied")) {
-          toast.error('Failed to load audit logs');
-        }
+        toast.error('Failed to load audit logs');
         return dummyAuditLogs;
       }
     },
