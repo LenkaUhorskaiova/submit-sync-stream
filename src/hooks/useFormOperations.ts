@@ -233,13 +233,18 @@ export const useFormOperations = (
       
       // Try to update form status in Supabase
       try {
+        console.log(`Updating form ${formId} status to ${status} in database`);
         const { error } = await supabase
           .from('forms')
           .update(updateData)
           .eq('id', formId);
           
         if (!error) {
+          console.log(`Successfully updated form ${formId} status to ${status} in database`);
           dbUpdateSuccess = true;
+        } else {
+          console.error(`Error updating form status in database:`, error);
+          // Continue with local update even if DB update fails
         }
       } catch (dbError) {
         console.error('Database error during status update:', dbError);

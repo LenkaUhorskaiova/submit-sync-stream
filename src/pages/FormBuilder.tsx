@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -132,6 +133,7 @@ const FormBuilderPage = () => {
     
     setIsSaving(true);
     try {
+      console.log("Submitting form for approval - changing status from draft to pending");
       const success = await updateFormStatus(formId, "pending");
       if (success) {
         toast.success("Form submitted for approval");
