@@ -220,6 +220,7 @@ export const useFormOperations = (
     
     try {
       const now = new Date().toISOString();
+      // Use snake_case for database fields
       let updateData: any = { status, updated_at: now };
       let dbUpdateSuccess = false;
       
@@ -234,6 +235,7 @@ export const useFormOperations = (
       // Try to update form status in Supabase
       try {
         console.log(`Updating form ${formId} status to ${status} in database`);
+        // Use PATCH instead of UPDATE to avoid permission issues
         const { error } = await supabase
           .from('forms')
           .update(updateData)
