@@ -220,10 +220,11 @@ export const useFormOperations = (
     
     try {
       const now = new Date().toISOString();
-      // Use snake_case for database fields
-      let updateData: any = { status, updated_at: now };
+      // Use snake_case for database fields and avoid referencing the users table directly
+      const updateData: Record<string, any> = { status, updated_at: now };
       let dbUpdateSuccess = false;
       
+      // Add appropriate fields based on status without referencing users table
       if (status === "approved") {
         updateData.approved_by = currentUserId;
         updateData.approved_at = now;
@@ -232,22 +233,22 @@ export const useFormOperations = (
         updateData.rejected_at = now;
       }
       
-      // Try to update form status in Supabase
+      // Try to update form status in Supabase - avoid unnecessary joins with users table
       try {
         console.log(`Updating form ${formId} status to ${status} in database`);
-        // Use PATCH instead of UPDATE to avoid permission issues
+        
         const { error } = await supabase
           .from('forms')
           .update(updateData)
           .eq('id', formId);
           
-        if (!error) {
-          console.log(`Successfully updated form ${formId} status to ${status} in database`);
-          dbUpdateSuccess = true;
-        } else {
+        if (error) {
           console.error(`Error updating form status in database:`, error);
-          // Continue with local update even if DB update fails
+          throw error;
         }
+        
+        console.log(`Successfully updated form ${formId} status to ${status} in database`);
+        dbUpdateSuccess = true;
       } catch (dbError) {
         console.error('Database error during status update:', dbError);
       }
